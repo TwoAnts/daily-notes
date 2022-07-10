@@ -2,7 +2,7 @@
 tags: [go, language, Notebooks/daily]
 title: Effective Go
 created: '2022-07-09T07:58:56.417Z'
-modified: '2022-07-10T07:41:29.240Z'
+modified: '2022-07-10T12:37:18.698Z'
 ---
 
 # Effective Go
@@ -116,4 +116,82 @@ modified: '2022-07-10T07:41:29.240Z'
   * 当外部从未访问过该方法/成员，同名冲突可以直接忽略，否则会报错
 
 ## Concurrency
+
+> Do not communicate by sharing memory; instead, share memory by communicating.
+> 不要通过共享内存来通信；通过通信来共享内存。
+
+goroutine: 在相同地址空间与其他goroutine一起并发执行的函数。(与线程、协程、进程的概念区分开)
+
+goroutine __轻量__ ，开销基本就是栈空间的分配。栈空间初始很小，所以分配开销小，当需要时通过分配堆存储来增长。
+
+goroutine 与 OS线程是 __多对多映射__ ，当发生阻塞(等待IO)时，其他goroutine继续运行。其中隐藏掉了很多线程创建和管理的复杂操作。
+
+go中的匿名函数是 __闭包__ ，函数中涉及到的变量会在函数执行过程中一直存活。
+
+go闭包错误示例：
+```go
+func Serve(queue chan *Request) {
+    for req := range queue {
+        sem <- 1
+        go func() {
+            process(req) // Buggy; see explanation below.
+            <-sem
+        }()
+    }
+}
+// req被循环的多轮共享，所以多个goroutine处理了相同的req
+```
+更正为:
+```go
+func Serve(queue chan *Request) {
+    for req := range queue {
+        sem <- 1
+        go func(req *Request) {
+            process(req)
+            <-sem
+        }(req)
+    }
+}
+```
+或者
+```go
+func Serve(queue chan *Request) {
+    for req := range queue {
+        req := req // Create new instance of req for the goroutine.
+        sem <- 1
+        go func() {
+            process(req)
+            <-sem
+        }()
+    }
+}
+// req := req 可以遮挡循环本身的req，这样每个goroutine会获得不同的req
+```
+
+如果想起到控制并发度的效果，也可以直接拉起固定并发的若干goroutine，然后所有goroutine共享同一channel
+```go
+func handle(queue chan *Request) {
+    for r := range queue {
+        process(r)
+    }
+}
+
+func Serve(clientRequests chan *Request, quit chan bool) {
+    // Start handlers
+    for i := 0; i < MaxOutstanding; i++ {
+        go handle(clientRequests)
+    }
+    <-quit  // Wait to be told to exit.
+}
+```
+
+* channel也可以是channel的元素, 比如chan chan int😂
+
+* Parallelization TODO
+
+
+
+
+
+
 
