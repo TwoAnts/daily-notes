@@ -2,7 +2,7 @@
 tags: [go, language, Notebooks/daily]
 title: Effective Go
 created: '2022-07-09T07:58:56.417Z'
-modified: '2022-07-09T10:45:28.267Z'
+modified: '2022-07-10T07:41:29.240Z'
 ---
 
 # Effective Go
@@ -109,4 +109,11 @@ modified: '2022-07-09T10:45:28.267Z'
       fmt.Printf("value %v of type %T implements json.Marshaler\n", val, val)
     }
     ```
+
+* 内嵌type或*type可以让类具有type相同的方法，当然也可以自行定义struct的同名方法起到覆盖的作用。
+  多个内嵌类型方法/成员同名冲突的解决规则:
+  * 越表层的方法/成员 掩盖 越底层(深度)的方法/成员
+  * 当外部从未访问过该方法/成员，同名冲突可以直接忽略，否则会报错
+
+## Concurrency
 
