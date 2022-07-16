@@ -1,8 +1,9 @@
 ---
+pinned: true
 tags: [go, language, Notebooks/daily]
 title: Effective Go
 created: '2022-07-09T07:58:56.417Z'
-modified: '2022-07-10T12:37:18.698Z'
+modified: '2022-07-16T07:30:39.239Z'
 ---
 
 # Effective Go
@@ -187,7 +188,41 @@ func Serve(clientRequests chan *Request, quit chan bool) {
 
 * channel也可以是channel的元素, 比如chan chan int😂
 
-* Parallelization TODO
+* Parallelization
+
+runtime.NumCPU()可以告知CPU数目
+runtime.GOMAXPROCS(0) 返回默认的工作线程数，缺省值为NumCPU()，可以手动设置
+
+## Panic Recover
+
+Recover可以用来将模块内部的panic转化为普通的error。如果此处是其他panic，代码中会在
+type assert时触发runtime error，导致程序停止。
+```go
+// Error is the type of a parse error; it satisfies the error interface.
+type Error string
+func (e Error) Error() string {
+    return string(e)
+}
+
+// error is a method of *Regexp that reports parsing errors by
+// panicking with an Error.
+func (regexp *Regexp) error(err string) {
+    panic(Error(err))
+}
+
+// Compile returns a parsed representation of the regular expression.
+func Compile(str string) (regexp *Regexp, err error) {
+    regexp = new(Regexp)
+    // doParse will panic if there is a parse error.
+    defer func() {
+        if e := recover(); e != nil {
+            regexp = nil    // Clear return value.
+            err = e.(Error) // Will re-panic if not a parse error.
+        }
+    }()
+    return regexp.doParse(str), nil
+}
+```
 
 
 
